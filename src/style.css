@@ -1,0 +1,21 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'DM Sans', sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
+}
+
+@layer base {
+  :root {
+    font-synthesis: none;
+  }
+
+  body {
+    @apply min-w-[320px] bg-[#f6f5ed] font-sans leading-[normal] text-[#293a28];
+  }
+
+  button:focus-visible, a:focus-visible {
+    @apply z-[3] outline-3 outline-offset-3 outline-[#d89c54];
+  }
+}
