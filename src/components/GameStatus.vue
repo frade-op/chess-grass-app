@@ -9,11 +9,6 @@ defineEmits(['reset', 'undo'])
 
 <template>
   <div class="rounded-lg border border-[#e1e9d8] bg-[#e9efdf] p-[23px]">
-    <div class="flex items-center justify-between">
-      <span class="text-[9px] font-bold tracking-[1.5px] text-[#96a68d]">A PARTIDA</span>
-      <span class="text-[26px] text-[#a9bd9a]">✳</span>
-    </div>
-    <h2 class="mt-2 mb-[19px] font-serif text-[29px] leading-[1.08]">Um movimento<br /><em class="text-[#77916a]">de cada vez.</em></h2>
     <div class="flex items-center text-[12px] text-[#4a6743]">
       <span class="mr-[5px] inline-block size-[7px] rounded-full bg-[#8eae7a]"></span>
       <strong aria-live="polite">{{ status }}</strong>

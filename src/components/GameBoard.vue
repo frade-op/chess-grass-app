@@ -1,5 +1,5 @@
 <script setup>
-import { pieceImage, plants, sideName } from '../game.js'
+import { pieceImage, pieceImageStyle, plants, sideName } from '../game.js'
 import PlayerRow from './PlayerRow.vue'
 
 defineProps({
@@ -12,10 +12,13 @@ defineProps({
 })
 defineEmits(['select-square'])
 const files = 'abcdefgh'
+// Restore texture by uncommenting this URL, adding `chessboard-wood` to the board, and binding it as backgroundImage.
+// const woodTexture = `url(${import.meta.env.BASE_URL}assets/board/wood-texture.jpg)`
 
 function squareLabel(square, piece) {
   return piece ? `${square}, ${plants[piece.type].role} ${sideName(piece.color).toLowerCase()}, ${plants[piece.type].name}` : `${square}, casa vazia`
 }
+
 </script>
 
 <template>
@@ -35,9 +38,9 @@ function squareLabel(square, piece) {
             v-for="(piece, colIndex) in row"
             :key="`${rowIndex}-${colIndex}`"
             type="button"
-            class="relative grid min-w-0 cursor-pointer place-items-center rounded-none border-0 p-0"
+            class="appearance-none relative grid min-w-0 cursor-pointer place-items-center rounded-none border-0 p-0 chess-square"
             :class="[
-              (rowIndex + colIndex) % 2 === 1 ? 'bg-[#8d9c72]' : 'bg-[#e6d9bb]',
+              (rowIndex + colIndex) % 2 === 1 ? 'chess-square--dark' : 'chess-square--light',
               selected === `${files[colIndex]}${8 - rowIndex}`
                 ? 'shadow-[inset_0_0_0_4px_#f0c973]'
                 : lastMove && [lastMove.from, lastMove.to].includes(`${files[colIndex]}${8 - rowIndex}`)
@@ -47,9 +50,9 @@ function squareLabel(square, piece) {
             :aria-pressed="selected === `${files[colIndex]}${8 - rowIndex}`"
             @click="$emit('select-square', `${files[colIndex]}${8 - rowIndex}`)"
           >
-            <span v-if="colIndex === 0" class="absolute top-1 left-[5px] z-[2] text-[10px] font-bold max-[680px]:text-[8px]" :class="(rowIndex + colIndex) % 2 ? 'text-[#e1e3cc]' : 'text-[#728261]'">{{ 8 - rowIndex }}</span>
-            <span v-if="rowIndex === 7" class="absolute right-[5px] bottom-[3px] z-[2] text-[10px] font-bold max-[680px]:text-[8px]" :class="(rowIndex + colIndex) % 2 ? 'text-[#e1e3cc]' : 'text-[#728261]'">{{ files[colIndex] }}</span>
-            <img v-if="piece" class="pointer-events-none relative z-[1] object-contain drop-shadow-[0_3px_2px_#30271635]" :class="piece.type === 'r' ? 'size-[75%]' : 'size-[78%]'" :src="pieceImage(piece)" alt="" draggable="false" />
+            <span v-if="colIndex === 0" class="absolute top-1 left-[5px] z-[2] text-[10px] font-bold max-[680px]:text-[8px]" :class="(rowIndex + colIndex) % 2 ? 'text-[#fff0d3]' : 'text-[#775832]'">{{ 8 - rowIndex }}</span>
+            <span v-if="rowIndex === 7" class="absolute right-[5px] bottom-[3px] z-[2] text-[10px] font-bold max-[680px]:text-[8px]" :class="(rowIndex + colIndex) % 2 ? 'text-[#fff0d3]' : 'text-[#775832]'">{{ files[colIndex] }}</span>
+            <img v-if="piece" class="pointer-events-none relative z-[1] min-h-0 min-w-0 max-h-[88%] max-w-[88%] self-center justify-self-center object-contain drop-shadow-[0_3px_2px_#30271635]" :style="pieceImageStyle(piece)" :src="pieceImage(piece)" alt="" draggable="false" />
             <span v-if="legalMoves.some((move) => move.to === `${files[colIndex]}${8 - rowIndex}`)" class="pointer-events-none absolute aspect-square rounded-full" :class="piece ? 'w-[86%] border-4 border-[#314f3d88] bg-transparent' : 'w-[20%] bg-[#314f3d77]'"></span>
           </button>
         </template>

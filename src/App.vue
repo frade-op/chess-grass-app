@@ -1,11 +1,17 @@
 <script setup>
+import { ref } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import GameBoard from './components/GameBoard.vue'
 import GameJournal from './components/GameJournal.vue'
 import GameStatus from './components/GameStatus.vue'
 import PlantGuide from './components/PlantGuide.vue'
+import PieceTutorial from './components/PieceTutorial.vue'
 import PromotionDialog from './components/PromotionDialog.vue'
+import WelcomeDialog from './components/WelcomeDialog.vue'
 import { useChessGame } from './composables/useChessGame.js'
+
+const welcomeVisible = ref(true)
+const guideTutorialPiece = ref(null)
 
 const {
   board, history, turn, status, finished, legalMoves, lastMove, selected, promotion,
@@ -17,22 +23,11 @@ const {
   <AppHeader :sound-enabled="soundEnabled" @toggle-sound="soundEnabled = !soundEnabled" />
 
   <main class="mx-auto max-w-[1370px] px-[5%]">
-    <section class="flex items-end justify-between pt-[58px] pb-[47px] max-[680px]:pt-[38px] max-[680px]:pb-8">
-      <div>
-        <div class="flex items-center gap-[9px] text-[9px] font-bold tracking-[1.5px] text-[#849976]">
-          <span class="h-px w-[25px] bg-[#91a783]"></span> UM JOGO DA NATUREZA
-        </div>
-        <h1 class="mt-[13px] font-serif text-[clamp(35px,4vw,55px)] leading-[1.07] tracking-[-1.6px]">Onde a estratégia <em class="text-[#819b72]">floresce.</em></h1>
-        <p class="mt-[13px] max-w-[570px] text-[13px] leading-[1.7] text-[#899082]">Um clássico em uma nova estação. Cultive suas ideias, planeje seus movimentos e deixe o jogo crescer.</p>
-      </div>
-      <div class="pb-[5px] text-[9px] font-bold tracking-[1.5px] whitespace-nowrap text-[#9aa891] max-[900px]:hidden"><span class="mr-2 align-middle text-[20px]">✳</span> UMA PARTIDA DE CADA VEZ</div>
-    </section>
-
-    <div class="grid grid-cols-[minmax(0,1fr)_350px] items-start gap-[38px] max-[900px]:grid-cols-[minmax(0,1fr)_300px] max-[900px]:gap-5 max-[680px]:grid-cols-1">
+    <div class="grid grid-cols-[minmax(0,1fr)_350px] items-start gap-[38px] pt-[44px] max-[900px]:grid-cols-[minmax(0,1fr)_300px] max-[900px]:gap-5 max-[680px]:grid-cols-1 max-[680px]:pt-[30px]">
       <GameBoard :board="board" :turn="turn" :finished="finished" :selected="selected" :legal-moves="legalMoves" :last-move="lastMove" @select-square="selectSquare" />
       <aside class="grid gap-4 max-[680px]:mt-[10px]">
         <GameStatus :status="status" :move-count="history.length" :sound-error="soundError" @reset="resetGame" @undo="undoMove" />
-        <PlantGuide />
+        <PlantGuide @select-piece="guideTutorialPiece = $event" />
         <GameJournal :history="history" />
       </aside>
     </div>
@@ -42,5 +37,12 @@ const {
     </footer>
   </main>
 
+  <WelcomeDialog v-if="welcomeVisible" @dismiss="welcomeVisible = false" />
+  <PieceTutorial
+    v-if="guideTutorialPiece"
+    :piece-type="guideTutorialPiece"
+    @back="guideTutorialPiece = null"
+    @dismiss="guideTutorialPiece = null"
+  />
   <PromotionDialog v-if="promotion" :promotion="promotion" @choose="makeMove(promotion.from, promotion.to, $event)" @cancel="promotion = null" />
 </template>

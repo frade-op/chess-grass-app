@@ -6,6 +6,23 @@
   --font-serif: 'DM Serif Display', Georgia, serif;
 }
 
+@layer components {
+  /* Optional texture, paired with the commented background binding in GameBoard.vue:
+  .chessboard-wood {
+    background-position: center;
+    background-size: cover;
+  }
+  */
+
+  .chess-square--light {
+    background-color: #e0c397;
+  }
+
+  .chess-square--dark {
+    background-color: #8a633f;
+  }
+}
+
 @layer base {
   :root {
     font-synthesis: none;
