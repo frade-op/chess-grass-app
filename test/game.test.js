@@ -3,16 +3,16 @@ import assert from 'node:assert/strict'
 import { Chess } from 'chess.js'
 import { createGame, gameStatus, plants, sideName } from '../src/game.js'
 
-test('a partida começa com marrom e permite apenas movimentos legais', () => {
+test('a partida começa com cinza e permite apenas movimentos legais', () => {
   const game = createGame()
-  assert.equal(sideName('w'), 'Marrom')
-  assert.equal(sideName('b'), 'Amarelo')
+  assert.equal(sideName('w'), 'Cinza')
+  assert.equal(sideName('b'), 'Marrom')
   assert.equal(game.turn(), 'w')
-  assert.equal(gameStatus(game), 'Vez de marrom')
+  assert.equal(gameStatus(game), 'Vez de cinza')
   assert.throws(() => game.move({ from: 'e2', to: 'e5' }))
   game.move({ from: 'e2', to: 'e4' })
   assert.equal(game.turn(), 'b')
-  assert.equal(gameStatus(game), 'Vez de amarelo')
+  assert.equal(gameStatus(game), 'Vez de marrom')
   assert.equal(game.undo().san, 'e4')
   assert.equal(game.turn(), 'w')
 })
@@ -22,7 +22,7 @@ test('capturas e xeque-mate são registrados', () => {
   for (const move of ['f3', 'e5', 'g4']) game.move(move)
   const final = game.move('Qh4#')
   assert.equal(final.san, 'Qh4#')
-  assert.equal(gameStatus(game), 'Xeque-mate! Amarelo venceu.')
+  assert.equal(gameStatus(game), 'Xeque-mate! Marrom venceu.')
 
   const capture = new Chess()
   for (const move of ['e4', 'd5']) capture.move(move)

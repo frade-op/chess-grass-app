@@ -1,6 +1,6 @@
 # Jardim de Xadrez
 
-Jogo de xadrez local para duas pessoas, feito com Vue. Os vasos marrons jogam primeiro; os vasos amarelos jogam em seguida.
+Jogo de xadrez feito com Vue, com partidas locais para duas pessoas ou contra Stockfish. Os vasos cinzas representam as peças brancas e jogam primeiro; os vasos marrons representam as pretas.
 
 A interface usa Tailwind CSS. Os componentes visuais ficam em `src/components`, e o estado da partida em `src/composables/useChessGame.js`.
 
@@ -15,7 +15,9 @@ npm run dev
 
 Abra o endereço exibido no terminal. Use `npm run build` para gerar a versão de produção e `npm test` para verificar as regras.
 
-Selecione uma peça e depois uma casa destacada. O jogo aplica as regras do xadrez, incluindo roque, captura en passant, promoção, xeque e empates. Os botões permitem desfazer o último lance, começar outra partida e controlar o som.
+Selecione uma peça e depois uma casa destacada. O jogo aplica as regras do xadrez, incluindo roque, captura en passant, promoção, xeque e empates. Os botões permitem desfazer lances, começar outra partida e controlar o som.
+
+Para jogar contra a máquina, escolha **Contra Stockfish** e selecione Fácil, Médio ou Difícil. Você joga com os vasos cinzas; a máquina joga com os marrons. O nível altera a profundidade de análise (1, 5 ou 10); no Fácil, a máquina também escolhe um lance legal aleatório em 75% das vezes. A máquina espera pelo menos 1,2 segundo antes de jogar, contando o tempo da consulta. O nível pode ser trocado durante a partida sem reiniciar o tabuleiro. Trocar entre os modos inicia uma nova partida. Esse modo precisa de conexão com a internet e consulta `https://chess-api.com/v1`.
 
 As imagens e os sons fornecidos estão em `public/assets`. Os sons são reproduzidos após movimentos e capturas, sujeitos às permissões de áudio do navegador.
 
