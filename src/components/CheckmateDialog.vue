@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 
-defineProps({ winner: { type: String, required: true } })
+defineProps({ winner: { type: String, required: true }, online: Boolean })
 defineEmits(['dismiss', 'reset'])
 
 const dialog = ref(null)
@@ -26,6 +26,7 @@ onMounted(() => dialog.value.showModal())
     </p>
     <div class="mt-7 grid grid-cols-2 gap-3 max-[480px]:grid-cols-1">
       <button
+        v-if="!online"
         class="cursor-pointer rounded-[5px] border border-[#526a4c] bg-[#526a4c] px-4 py-3 text-[12px] font-semibold text-white hover:bg-[#40553c]"
         type="button"
         @click="$emit('reset')"

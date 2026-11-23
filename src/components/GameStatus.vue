@@ -3,6 +3,7 @@ defineProps({
   status: { type: String, required: true },
   moveCount: { type: Number, required: true },
   soundError: { type: String, default: '' },
+  online: Boolean,
 })
 defineEmits(['reset', 'undo'])
 </script>
@@ -14,7 +15,7 @@ defineEmits(['reset', 'undo'])
       <strong aria-live="polite">{{ status }}</strong>
     </div>
     <p class="mt-[9px] text-[11px] leading-[1.5] text-[#8a9b80]">Boas ideias precisam de tempo para criar raízes.</p>
-    <div class="mt-[21px] flex gap-2">
+    <div v-if="!online" class="mt-[21px] flex gap-2">
       <button class="flex-1 cursor-pointer rounded-[5px] border border-[#496744] bg-[#496744] px-[10px] py-3 text-[11px] font-bold text-white hover:bg-[#395638]" type="button" @click="$emit('reset')"><span class="mr-[5px] text-[15px]">↻</span> Nova partida</button>
       <button class="flex-1 cursor-pointer rounded-[5px] border border-[#cad7c1] bg-transparent px-[10px] py-3 text-[11px] font-bold text-[#708268] disabled:cursor-not-allowed disabled:opacity-50" type="button" :disabled="!moveCount" @click="$emit('undo')"><span class="mr-[5px] text-[15px]">↶</span> Desfazer</button>
     </div>

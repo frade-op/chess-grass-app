@@ -1,6 +1,6 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { createGame, gameStatus } from '../game.js'
-import { engineDifficulties, requestEngineMove } from '../services/chessApi.js'
+import { engineDifficulties, requestEngineMove } from '../services/chessEngine.js'
 
 const minimumThinkingTime = 1200
 const easyRandomMoveChance = 0.75
@@ -20,7 +20,7 @@ function waitForThinkingTime(startedAt, signal) {
   })
 }
 
-export function useChessGame() {
+export function useChessGame(online = null) {
   const game = createGame()
   const revision = ref(0)
   const selected = ref(null)
@@ -81,6 +81,22 @@ export function useChessGame() {
   })
   const computerTurn = computed(() => playMode.value === 'computer' && turn.value === 'b')
 
+  if (online) {
+    watch(online.room, (room, previousRoom) => {
+      if (playMode.value !== 'online' || !room) return
+      game.reset()
+      if (room.moves) {
+        for (const move of room.moves.trim().split(' ')) game.move(move)
+      }
+      selected.value = null
+      promotion.value = null
+      revision.value++
+      if (previousRoom && room.version > previousRoom.version) {
+        playSound(Boolean(game.history({ verbose: true }).at(-1)?.captured))
+      }
+    }, { flush: 'sync' })
+  }
+
   function cancelComputerRequest() {
     engineRequestId++
     engineAbortController?.abort()
@@ -140,7 +156,7 @@ export function useChessGame() {
       if (requestId !== engineRequestId || controller.signal.aborted) return
       computerError.value = error instanceof Error
         ? error.message
-        : 'Não foi possível consultar a API Stockfish. Tente novamente.'
+        : 'Não foi possível executar o Stockfish. Tente novamente.'
     } finally {
       if (requestId === engineRequestId) {
         computerThinking.value = false
@@ -158,6 +174,13 @@ export function useChessGame() {
   }
 
   function makeMove(from, to, piece = 'q') {
+    if (playMode.value === 'online') {
+      if (!online?.canMove.value) return
+      selected.value = null
+      promotion.value = null
+      void online.submitMove({ from, to, promotion: piece })
+      return
+    }
     const move = game.move({ from, to, promotion: piece })
     selected.value = null
     promotion.value = null
@@ -167,7 +190,7 @@ export function useChessGame() {
   }
 
   function selectSquare(square) {
-    if (promotion.value || finished.value || computerTurn.value) return
+    if (promotion.value || finished.value || computerTurn.value || (playMode.value === 'online' && !online?.canMove.value)) return
     const piece = game.get(square)
     const move = legalMoves.value.find((candidate) => candidate.to === square)
     if (selected.value && move) {
@@ -182,6 +205,7 @@ export function useChessGame() {
   }
 
   function resetGame() {
+    if (playMode.value === 'online') return
     cancelComputerRequest()
     computerError.value = ''
     game.reset()
@@ -191,6 +215,7 @@ export function useChessGame() {
   }
 
   function undoMove() {
+    if (playMode.value === 'online') return
     const playedHistory = history.value
     if (!playedHistory.length) return
     cancelComputerRequest()
@@ -206,10 +231,11 @@ export function useChessGame() {
   }
 
   function setPlayMode(mode) {
-    if (!['local', 'computer'].includes(mode)) throw new Error('Modo de jogo inválido.')
+    if (!['local', 'computer', 'online'].includes(mode)) throw new Error('Modo de jogo inválido.')
     if (playMode.value === mode) return
-    playMode.value = mode
+    if (playMode.value === 'online') playMode.value = 'local'
     resetGame()
+    playMode.value = mode
   }
 
   function setDifficulty(level) {

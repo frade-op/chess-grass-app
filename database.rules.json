@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$roomId": {
+        ".read": "auth != null && (!data.exists() || data.child('guest').val() == '' || data.child('host').val() == auth.uid || data.child('guest').val() == auth.uid)",
+        ".write": "auth != null && $roomId.matches(/^[a-f0-9]{32}$/) && ((!data.exists() && newData.child('host').val() == auth.uid && newData.child('guest').val() == '' && newData.child('moves').val() == '' && newData.child('lastMove').val() == '' && newData.child('turn').val() == 'w' && newData.child('version').val() == 0) || (data.exists() && newData.child('host').val() == data.child('host').val() && ((data.child('guest').val() == '' && auth.uid != data.child('host').val() && newData.child('guest').val() == auth.uid && newData.child('moves').val() == data.child('moves').val() && newData.child('lastMove').val() == data.child('lastMove').val() && newData.child('turn').val() == data.child('turn').val() && newData.child('version').val() == data.child('version').val()) || (data.child('guest').val() != '' && newData.child('guest').val() == data.child('guest').val() && ((data.child('turn').val() == 'w' && auth.uid == data.child('host').val() && newData.child('turn').val() == 'b') || (data.child('turn').val() == 'b' && auth.uid == data.child('guest').val() && newData.child('turn').val() == 'w')) && newData.child('version').val() == data.child('version').val() + 1 && newData.child('moves').val() == data.child('moves').val() + ' ' + newData.child('lastMove').val()))))",
+        ".validate": "newData.hasChildren(['host', 'guest', 'moves', 'lastMove', 'turn', 'version']) && newData.child('host').isString() && newData.child('guest').isString() && newData.child('moves').isString() && newData.child('moves').val().length <= 100000 && newData.child('lastMove').isString() && newData.child('lastMove').val().length <= 16 && (newData.child('turn').val() == 'w' || newData.child('turn').val() == 'b') && newData.child('version').isNumber()",
+        "host": { ".validate": true },
+        "guest": { ".validate": true },
+        "moves": { ".validate": true },
+        "lastMove": { ".validate": true },
+        "turn": { ".validate": true },
+        "version": { ".validate": true },
+        "$other": { ".validate": false }
+      }
+    }
+  }
+}

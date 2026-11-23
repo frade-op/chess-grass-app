@@ -1,5 +1,6 @@
 <script setup>
-import { engineDifficulties } from '../services/chessApi.js'
+import { engineDifficulties } from '../services/chessEngine.js'
+import stockfishLicenseUrl from 'stockfish/Copying.txt?url'
 
 defineProps({
   mode: { type: String, required: true },
@@ -33,6 +34,15 @@ defineEmits(['select-mode', 'select-difficulty', 'retry'])
       >
         Contra Stockfish
       </button>
+      <button
+        class="col-span-2 cursor-pointer rounded-[5px] border px-3 py-2.5 text-[11px] font-semibold"
+        :class="mode === 'online' ? 'border-[#526a4c] bg-[#526a4c] text-white' : 'border-[#dce5d6] bg-[#f8faf2] text-[#526a4c] hover:border-[#9cac91]'"
+        type="button"
+        :aria-pressed="mode === 'online'"
+        @click="$emit('select-mode', 'online')"
+      >
+        Jogar online
+      </button>
     </div>
 
     <template v-if="mode === 'computer'">
@@ -60,6 +70,11 @@ defineEmits(['select-mode', 'select-difficulty', 'retry'])
         <button class="mt-2 cursor-pointer font-bold underline" type="button" @click="$emit('retry')">Tentar novamente</button>
       </div>
       <p v-else class="mt-3 text-[9px] leading-[1.5] text-[#a3ac9b]">Trocar o nível durante a partida não reinicia o tabuleiro.</p>
+      <p class="mt-3 text-[9px] leading-[1.5] text-[#7d8776]">
+        Stockfish 19:
+        <a class="underline" :href="stockfishLicenseUrl" target="_blank" rel="noopener noreferrer">licença GPL-3.0</a>
+        · <a class="underline" href="https://github.com/nmrugg/stockfish.js/tree/v19.0.1" target="_blank" rel="noopener noreferrer">código-fonte</a>
+      </p>
     </template>
     <p v-else class="mt-3 text-[9px] leading-[1.5] text-[#a3ac9b]">Trocar de modo inicia uma nova partida.</p>
   </section>

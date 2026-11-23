@@ -6,21 +6,30 @@ import { useChessGame } from '../src/composables/useChessGame.js'
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
+function mockWorkers(onSearch) {
+  const originalWorker = globalThis.Worker
+  const workers = []
+  globalThis.Worker = class {
+    constructor() { this.commands = []; workers.push(this) }
+    postMessage(command) {
+      this.commands.push(command)
+      if (command.startsWith('go ')) onSearch(this, command)
+    }
+    terminate() { this.terminated = true }
+    reply(move) { this.onmessage({ data: `bestmove ${move}` }) }
+  }
+  return { workers, restore: () => { globalThis.Worker = originalWorker } }
+}
+
 test('identifica o rei em xeque na casa correta', () => {
   const game = useChessGame()
   game.soundEnabled.value = false
   assert.equal(game.checkedKingSquare.value, null)
   assert.equal(game.checkmate.value, false)
 
-  for (const [from, to] of [
-    ['f2', 'f3'],
-    ['e7', 'e5'],
-    ['g2', 'g4'],
-    ['d8', 'h4'],
-  ]) {
+  for (const [from, to] of [['f2', 'f3'], ['e7', 'e5'], ['g2', 'g4'], ['d8', 'h4']]) {
     game.makeMove(from, to)
   }
-
   assert.equal(game.checkedKingSquare.value, 'e1')
   assert.equal(game.checkmate.value, true)
   game.undoMove()
@@ -34,25 +43,13 @@ test('identifica o rei em xeque na casa correta', () => {
 test('um xeque sem mate não encerra a partida', () => {
   const game = useChessGame()
   game.soundEnabled.value = false
-  for (const [from, to] of [['e2', 'e4'], ['f7', 'f6'], ['d1', 'h5']]) {
-    game.makeMove(from, to)
-  }
+  for (const [from, to] of [['e2', 'e4'], ['f7', 'f6'], ['d1', 'h5']]) game.makeMove(from, to)
   assert.equal(game.checkedKingSquare.value, 'e8')
   assert.equal(game.checkmate.value, false)
 })
 
 test('a partida contra Stockfish responde ao lance humano e desfaz a rodada inteira', async () => {
-  const originalFetch = globalThis.fetch
-  let requestBody
-  globalThis.fetch = async (_url, options) => {
-    requestBody = JSON.parse(options.body)
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-    }
-  }
-
+  const mock = mockWorkers((worker) => worker.reply('e7e5'))
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
@@ -69,95 +66,66 @@ test('a partida contra Stockfish responde ao lance humano e desfaz a rodada inte
     assert.equal(game.computerThinking.value, true)
     assert.equal(game.history.value.length, 1)
     await wait(200)
-
-    assert.equal(requestBody.depth, 5)
+    assert.match(mock.workers[0].commands[1], /depth 4/)
     assert.deepEqual(game.history.value.map((move) => move.san), ['e4', 'e5'])
     assert.ok(responseAt - startedAt >= 1200)
     stopWatching()
     assert.equal(game.turn.value, 'w')
     assert.equal(game.computerThinking.value, false)
-
     game.undoMove()
     assert.equal(game.history.value.length, 0)
     assert.equal(game.turn.value, 'w')
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
-test('exibe falha da API e permite tentar novamente o lance da máquina', async () => {
-  const originalFetch = globalThis.fetch
+test('exibe falha do motor e permite tentar novamente', async () => {
   let requests = 0
-  globalThis.fetch = async () => {
-    requests++
-    if (requests === 1) return { ok: false, status: 503 }
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-    }
-  }
-
+  const mock = mockWorkers((worker) => {
+    if (++requests === 1) worker.onerror()
+    else worker.reply('e7e5')
+  })
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
     game.setPlayMode('computer')
-    game.selectSquare('e2')
-    game.selectSquare('e4')
+    game.makeMove('e2', 'e4')
     await wait(0)
-
-    assert.match(game.computerError.value, /erro \(503\)/)
+    assert.match(game.computerError.value, /Não foi possível carregar/)
     assert.equal(game.history.value.length, 1)
-
     game.retryComputerMove()
     await wait(1300)
     assert.equal(game.computerError.value, '')
     assert.deepEqual(game.history.value.map((move) => move.san), ['e4', 'e5'])
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
-test('descarta uma resposta atrasada quando uma nova partida é iniciada', async () => {
-  const originalFetch = globalThis.fetch
-  let resolveResponse
-  globalThis.fetch = () => new Promise((resolve) => {
-    resolveResponse = resolve
-  })
-
+test('cancela o worker e descarta resposta atrasada ao reiniciar', async () => {
+  const mock = mockWorkers(() => {})
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
     game.setPlayMode('computer')
-    game.selectSquare('e2')
-    game.selectSquare('e4')
+    game.makeMove('e2', 'e4')
     assert.equal(game.computerThinking.value, true)
-
     game.resetGame()
-    resolveResponse({
-      ok: true,
-      status: 200,
-      json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-    })
+    assert.equal(mock.workers[0].terminated, true)
+    mock.workers[0].reply('e7e5')
     await wait(0)
-
     assert.equal(game.history.value.length, 0)
     assert.equal(game.turn.value, 'w')
     assert.equal(game.computerThinking.value, false)
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
 test('no fácil, intercala lances legais aleatórios com os sugeridos pelo Stockfish', async () => {
-  const originalFetch = globalThis.fetch
+  const mock = mockWorkers((worker) => worker.reply('e7e5'))
   const originalRandom = Math.random
-  globalThis.fetch = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-  })
-
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
@@ -166,14 +134,12 @@ test('no fácil, intercala lances legais aleatórios com os sugeridos pelo Stock
     Math.random = () => 0
     game.makeMove('e2', 'e4')
     await wait(1300)
-
     const randomMove = game.history.value.at(-1)
     assert.notEqual(randomMove.san, 'e5')
     const reference = new Chess()
     reference.move('e4')
     assert.ok(reference.moves({ verbose: true }).some((move) =>
       move.from === randomMove.from && move.to === randomMove.to))
-
     game.resetGame()
     Math.random = () => 0.99
     game.makeMove('e2', 'e4')
@@ -181,18 +147,12 @@ test('no fácil, intercala lances legais aleatórios com os sugeridos pelo Stock
     assert.equal(game.history.value.at(-1).san, 'e5')
   } finally {
     Math.random = originalRandom
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
 test('cancelar durante o tempo de pensamento impede o lance atrasado', async () => {
-  const originalFetch = globalThis.fetch
-  globalThis.fetch = async () => ({
-    ok: true,
-    status: 200,
-    json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-  })
-
+  const mock = mockWorkers((worker) => worker.reply('e7e5'))
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
@@ -205,23 +165,12 @@ test('cancelar durante o tempo de pensamento impede o lance atrasado', async () 
     assert.equal(game.history.value.length, 0)
     assert.equal(game.computerThinking.value, false)
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
 test('trocar a dificuldade durante o pensamento descarta a resposta anterior', async () => {
-  const originalFetch = globalThis.fetch
-  const depths = []
-  globalThis.fetch = async (_url, options) => {
-    const { depth } = JSON.parse(options.body)
-    depths.push(depth)
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ type: 'bestmove', move: depth === 5 ? 'e7e5' : 'd7d5' }),
-    }
-  }
-
+  const mock = mockWorkers((worker, command) => worker.reply(command.includes('depth 4') ? 'e7e5' : 'd7d5'))
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
@@ -230,24 +179,16 @@ test('trocar a dificuldade durante o pensamento descarta a resposta anterior', a
     await wait(20)
     game.setDifficulty('hard')
     await wait(1300)
-    assert.deepEqual(depths, [5, 10])
+    assert.match(mock.workers[0].commands[1], /depth 4/)
+    assert.match(mock.workers[1].commands[1], /depth 10/)
     assert.deepEqual(game.history.value.map((move) => move.san), ['e4', 'd5'])
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })
 
-test('o tempo da consulta conta para o tempo mínimo de pensamento', async () => {
-  const originalFetch = globalThis.fetch
-  globalThis.fetch = async () => {
-    await wait(1300)
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({ type: 'bestmove', move: 'e7e5' }),
-    }
-  }
-
+test('o tempo da busca conta para o tempo mínimo de pensamento', async () => {
+  const mock = mockWorkers((worker) => setTimeout(() => worker.reply('e7e5'), 1300))
   try {
     const game = useChessGame()
     game.soundEnabled.value = false
@@ -257,6 +198,6 @@ test('o tempo da consulta conta para o tempo mínimo de pensamento', async () =>
     assert.deepEqual(game.history.value.map((move) => move.san), ['e4', 'e5'])
     assert.equal(game.computerThinking.value, false)
   } finally {
-    globalThis.fetch = originalFetch
+    mock.restore()
   }
 })

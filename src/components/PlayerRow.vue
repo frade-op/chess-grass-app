@@ -6,6 +6,7 @@ const props = defineProps({
   active: Boolean,
   mode: { type: String, default: 'local' },
   computerThinking: Boolean,
+  onlineColor: { type: String, default: '' },
 })
 
 const isComputer = computed(() => props.mode === 'computer' && props.color === 'b')
@@ -13,10 +14,12 @@ const playerName = computed(() => isComputer.value
   ? 'Stockfish'
   : `Vasos ${props.color === 'b' ? 'marrons' : 'cinzas'}`)
 const playerLabel = computed(() => {
+  if (props.mode === 'online') return `${props.color === props.onlineColor ? 'VOCÊ' : 'ADVERSÁRIO'} · VASOS ${props.color === 'b' ? 'MARRONS' : 'CINZAS'}`
   if (props.mode !== 'computer') return `JOGADOR ${props.color === 'b' ? '2' : '1'}`
   return isComputer.value ? 'MÁQUINA · VASOS MARRONS' : 'VOCÊ · VASOS CINZAS'
 })
 const activeLabel = computed(() => {
+  if (props.mode === 'online' && props.color !== props.onlineColor) return 'VEZ DO ADVERSÁRIO'
   if (isComputer.value) return props.computerThinking ? 'STOCKFISH PENSANDO' : 'VEZ DA MÁQUINA'
   return 'SUA VEZ'
 })

@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from 'vue'
 import { pieceImage, pieceImageStyle, plants, sideName } from '../game.js'
 import PlayerRow from './PlayerRow.vue'
 
@@ -7,6 +8,7 @@ defineProps({
   turn: { type: String, required: true },
   mode: { type: String, default: 'local' },
   computerThinking: Boolean,
+  onlineColor: { type: String, default: '' },
   finished: Boolean,
   inputLocked: Boolean,
   selected: { type: String, default: null },
@@ -16,6 +18,7 @@ defineProps({
 })
 defineEmits(['select-square'])
 const files = 'abcdefgh'
+const boardScale = ref(100)
 // Restore texture by uncommenting this URL, adding `chessboard-wood` to the board, and binding it as backgroundImage.
 // const woodTexture = `url(${import.meta.env.BASE_URL}assets/board/wood-texture.jpg)`
 
@@ -35,10 +38,16 @@ function squareLabel(square, piece, isLastMove, isCheckedKing) {
         <span class="text-[9px] font-bold tracking-[1.5px] text-[#96a68d]">O TABULEIRO</span>
         <h2 class="mt-[5px] font-serif text-[25px]">Hora de jogar<span class="text-[#d29a5b]">.</span></h2>
       </div>
-      <span class="rounded-[20px] border border-[#dce5d6] bg-[#f8faf2] px-[11px] py-[9px] text-[8px] font-bold tracking-[1.5px] text-[#819379]"><span class="mr-[5px] inline-block size-[7px] rounded-full bg-[#8eae7a]"></span> {{ mode === 'computer' ? 'CONTRA STOCKFISH' : 'PARTIDA LOCAL' }}</span>
+      <span class="rounded-[20px] border border-[#dce5d6] bg-[#f8faf2] px-[11px] py-[9px] text-[8px] font-bold tracking-[1.5px] text-[#819379]"><span class="mr-[5px] inline-block size-[7px] rounded-full bg-[#8eae7a]"></span> {{ mode === 'computer' ? 'CONTRA STOCKFISH' : mode === 'online' ? 'PARTIDA ONLINE' : 'PARTIDA LOCAL' }}</span>
     </div>
-    <PlayerRow color="b" :mode="mode" :computer-thinking="computerThinking" :active="turn === 'b' && !finished" />
-    <div class="rounded-[5px] border border-[#60472e] bg-[#735438] p-[11px] shadow-[0_7px_0_#59402c,0_14px_23px_#59402c26] max-[680px]:p-[7px]">
+    <div class="mt-4 flex flex-wrap items-center justify-end gap-3 text-[11px] text-[#526a4c]">
+      <label for="board-scale" class="font-semibold">Escala do tabuleiro</label>
+      <input id="board-scale" v-model.number="boardScale" class="w-28 accent-[#526a4c]" type="range" min="75" max="100" step="1" :aria-valuetext="`${boardScale}%`" />
+      <output for="board-scale" class="w-10 tabular-nums">{{ boardScale }}%</output>
+    </div>
+    <div class="mx-auto" :style="{ width: `${boardScale}%` }">
+      <PlayerRow color="b" :mode="mode" :online-color="onlineColor" :computer-thinking="computerThinking" :active="turn === 'b' && !finished" />
+      <div class="rounded-[5px] border border-[#60472e] bg-[#735438] p-[11px] shadow-[0_7px_0_#59402c,0_14px_23px_#59402c26] max-[680px]:p-[7px]">
       <div class="grid aspect-square grid-cols-8 grid-rows-8 border-2 border-[#57412c]" aria-label="Tabuleiro de xadrez">
         <template v-for="(row, rowIndex) in board" :key="rowIndex">
           <button
@@ -74,8 +83,9 @@ function squareLabel(square, piece, isLastMove, isCheckedKing) {
           </button>
         </template>
       </div>
+      </div>
+      <PlayerRow color="w" :mode="mode" :online-color="onlineColor" :computer-thinking="computerThinking" :active="turn === 'w' && !finished" />
     </div>
-    <PlayerRow color="w" :mode="mode" :computer-thinking="computerThinking" :active="turn === 'w' && !finished" />
     <p class="mt-[7px] text-center text-[11px] text-[#9aa18f]"><span class="text-[15px] text-[#9ab38b]">✳</span> Selecione uma planta para ver seus movimentos possíveis.</p>
   </section>
 </template>
